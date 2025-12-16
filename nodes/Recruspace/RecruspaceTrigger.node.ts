@@ -53,7 +53,7 @@ export class RecruspaceTrigger implements INodeType {
 				],
 				default: ['candidate_created'],
 				required: true,
-				description: 'Select the events from Recruspace to trigger this workflow.',
+				description: 'Select the events from Recruspace to trigger this workflow',
 			},
 		],
 	};

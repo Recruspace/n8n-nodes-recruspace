@@ -1,29 +1,34 @@
 import type {
-    IDataObject,
-    IExecuteFunctions,
-    INodeExecutionData,
-    INodeType,
-    INodeTypeDescription,
+	IDataObject,
+	IExecuteFunctions,
+	INodeExecutionData,
+	INodeType,
+	INodeTypeDescription,
 } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
 
+// eslint-disable-next-line @n8n/community-nodes/no-restricted-imports
 import FormData from 'form-data';
+// eslint-disable-next-line @n8n/community-nodes/no-restricted-imports
 import * as fs from 'fs';
+// eslint-disable-next-line @n8n/community-nodes/no-restricted-imports
 import * as path from 'path';
 
 export class Recruspace implements INodeType {
-    description: INodeTypeDescription = {
-        displayName: 'Recruspace',
-        name: 'recruspace',
-        icon: 'file:recruspace.svg',
-        group: ['transform'],
-        version: 1,
-        subtitle: '={{$parameter["operation"]}}',
-        description: 'Interact with Recruspace API',
-        defaults: {
-            name: 'Recruspace',
-        },
-        inputs: ['main'],
-        outputs: ['main'],
+	description: INodeTypeDescription = {
+		displayName: 'Recruspace',
+		name: 'recruspace',
+		icon: 'file:recruspace.svg',
+		group: ['transform'],
+		version: 1,
+		subtitle: '={{$parameter["operation"]}}',
+		description: 'Interact with Recruspace API',
+		defaults: {
+			name: 'Recruspace',
+		},
+		usableAsTool: true,
+		inputs: ['main'],
+		outputs: ['main'],
         credentials: [
             {
                 name: 'recruspaceApi',
@@ -453,10 +458,12 @@ export class Recruspace implements INodeType {
                         });
 
                         // Response structure: { success: "OK", content: { id: 39384, ... } }
-                        const responseData = (uploadResponse as any).content || uploadResponse;
+                        const uploadResponseObject = uploadResponse as IDataObject;
+                        const responseData =
+                            (uploadResponseObject.content as IDataObject | undefined) ?? uploadResponseObject;
 
                         returnData.push({
-                            json: responseData as IDataObject,
+                            json: responseData,
                             pairedItem: { item: i },
                         });
                     }
@@ -475,7 +482,10 @@ export class Recruspace implements INodeType {
 
                         // Validate CV source
                         if (cvSource !== 'binaryData') {
-                            throw new Error('Only "Binary Data" is supported as CV Source for creating candidates. Please provide CV as binary data from a previous node.');
+                            throw new NodeOperationError(
+                                this.getNode(),
+                                'Only "Binary Data" is supported as CV Source for creating candidates. Please provide CV as binary data from a previous node.',
+                            );
                         }
 
                         // Determine association based on selection
@@ -484,14 +494,23 @@ export class Recruspace implements INodeType {
 
                         if (associateWithJobPost) {
                             if (!jobPost || jobPost.trim() === '') {
-                                throw new Error('Job Post Hash is required when associating the candidate with a Job Post.');
+                                throw new NodeOperationError(
+                                    this.getNode(),
+                                    'Job Post Hash is required when associating the candidate with a Job Post.',
+                                );
                             }
                         } else if (associateWithTalentPool) {
                             if (!talentPoolId || talentPoolId <= 0) {
-                                throw new Error('Talent Pool ID is required when associating the candidate with a Talent Pool.');
+                                throw new NodeOperationError(
+                                    this.getNode(),
+                                    'Talent Pool ID is required when associating the candidate with a Talent Pool.',
+                                );
                             }
                         } else {
-                            throw new Error('Invalid association type. Please choose either Job Post or Talent Pool.');
+                            throw new NodeOperationError(
+                                this.getNode(),
+                                'Invalid association type. Please choose either Job Post or Talent Pool.',
+                            );
                         }
 
                         // Ensure baseUrl doesn't have trailing slash
@@ -542,23 +561,51 @@ export class Recruspace implements INodeType {
                             });
 
                             // Handle response structure: { success: "OK", content: {...} }
-                            const responseContent = (response as any).content || response;
+                            const responseObject = response as IDataObject;
+                            const responseContent =
+                                (responseObject.content as IDataObject | undefined) ?? responseObject;
 
                             returnData.push({
-                                json: responseContent as IDataObject,
+                                json: responseContent,
                                 pairedItem: { item: i },
                             });
-                        } catch (error: any) {
+                        } catch (error: unknown) {
                             // Better error handling to show backend error details
-                            const errorMessage = error.response?.data?.detail 
-                                || error.response?.data?.message 
-                                || error.response?.data 
-                                || error.message 
-                                || 'Unknown error occurred';
-                            
-                            const statusCode = error.response?.status || 'unknown';
-                            
-                            throw new Error(`Failed to create candidate (${statusCode}): ${JSON.stringify(errorMessage)}\n\nBase URL: ${baseUrl}\nFull URL: ${apiUrl}`);
+                            let errorMessage: unknown = 'Unknown error occurred';
+                            let statusCode: string | number = 'unknown';
+
+                            if (typeof error === 'object' && error !== null) {
+                                const errorObj = error as {
+                                    response?: {
+                                        data?: unknown;
+                                        status?: number;
+                                    };
+                                    message?: string;
+                                };
+
+                                const responseData = errorObj.response?.data;
+
+                                if (typeof responseData === 'object' && responseData !== null) {
+                                    const dataObj = responseData as Record<string, unknown>;
+                                    errorMessage =
+                                        dataObj.detail ??
+                                        dataObj.message ??
+                                        responseData ??
+                                        errorObj.message ??
+                                        errorMessage;
+                                } else {
+                                    errorMessage = responseData ?? errorObj.message ?? errorMessage;
+                                }
+
+                                if (errorObj.response?.status) {
+                                    statusCode = errorObj.response.status;
+                                }
+                            }
+
+                            throw new NodeOperationError(
+                                this.getNode(),
+                                `Failed to create candidate (${statusCode}): ${JSON.stringify(errorMessage)}\n\nBase URL: ${baseUrl}\nFull URL: ${apiUrl}`,
+                            );
                         }
                     } else if (operation === 'addComment') {
                         // Add Note using Integration Endpoint
@@ -567,7 +614,10 @@ export class Recruspace implements INodeType {
 
                         // Validate required fields
                         if (!candidateId || candidateId === 0) {
-                            throw new Error('Candidate ID is required. Please provide a valid Candidate ID.');
+                            throw new NodeOperationError(
+                                this.getNode(),
+                                'Candidate ID is required. Please provide a valid Candidate ID.',
+                            );
                         }
 
                         // Ensure baseUrl doesn't have trailing slash
@@ -593,17 +643,43 @@ export class Recruspace implements INodeType {
                                 json: response as IDataObject,
                                 pairedItem: { item: i },
                             });
-                        } catch (error: any) {
+                        } catch (error: unknown) {
                             // Better error handling to show backend error details
-                            const errorMessage = error.response?.data?.detail 
-                                || error.response?.data?.message 
-                                || error.response?.data 
-                                || error.message 
-                                || 'Unknown error occurred';
-                            
-                            const statusCode = error.response?.status || 'unknown';
-                            
-                            throw new Error(`Failed to add note (${statusCode}): ${JSON.stringify(errorMessage)}\n\nURL: ${apiUrl}\nRequest body: ${JSON.stringify({ candidate_id: candidateId, text: noteText }, null, 2)}`);
+                            let errorMessage: unknown = 'Unknown error occurred';
+                            let statusCode: string | number = 'unknown';
+
+                            if (typeof error === 'object' && error !== null) {
+                                const errorObj = error as {
+                                    response?: {
+                                        data?: unknown;
+                                        status?: number;
+                                    };
+                                    message?: string;
+                                };
+
+                                const responseData = errorObj.response?.data;
+
+                                if (typeof responseData === 'object' && responseData !== null) {
+                                    const dataObj = responseData as Record<string, unknown>;
+                                    errorMessage =
+                                        dataObj.detail ??
+                                        dataObj.message ??
+                                        responseData ??
+                                        errorObj.message ??
+                                        errorMessage;
+                                } else {
+                                    errorMessage = responseData ?? errorObj.message ?? errorMessage;
+                                }
+
+                                if (errorObj.response?.status) {
+                                    statusCode = errorObj.response.status;
+                                }
+                            }
+
+                            throw new NodeOperationError(
+                                this.getNode(),
+                                `Failed to add note (${statusCode}): ${JSON.stringify(errorMessage)}\n\nURL: ${apiUrl}\nRequest body: ${JSON.stringify({ candidate_id: candidateId, text: noteText }, null, 2)}`,
+                            );
                         }
                     }
                 } else if (resource === 'talentPool') {
