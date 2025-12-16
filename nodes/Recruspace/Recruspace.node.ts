@@ -485,6 +485,7 @@ export class Recruspace implements INodeType {
                             throw new NodeOperationError(
                                 this.getNode(),
                                 'Only "Binary Data" is supported as CV Source for creating candidates. Please provide CV as binary data from a previous node.',
+                                { itemIndex: i },
                             );
                         }
 
@@ -497,6 +498,7 @@ export class Recruspace implements INodeType {
                                 throw new NodeOperationError(
                                     this.getNode(),
                                     'Job Post Hash is required when associating the candidate with a Job Post.',
+                                    { itemIndex: i },
                                 );
                             }
                         } else if (associateWithTalentPool) {
@@ -504,12 +506,14 @@ export class Recruspace implements INodeType {
                                 throw new NodeOperationError(
                                     this.getNode(),
                                     'Talent Pool ID is required when associating the candidate with a Talent Pool.',
+                                    { itemIndex: i },
                                 );
                             }
                         } else {
                             throw new NodeOperationError(
                                 this.getNode(),
                                 'Invalid association type. Please choose either Job Post or Talent Pool.',
+                                { itemIndex: i },
                             );
                         }
 
@@ -605,6 +609,7 @@ export class Recruspace implements INodeType {
                             throw new NodeOperationError(
                                 this.getNode(),
                                 `Failed to create candidate (${statusCode}): ${JSON.stringify(errorMessage)}\n\nBase URL: ${baseUrl}\nFull URL: ${apiUrl}`,
+                                { itemIndex: i },
                             );
                         }
                     } else if (operation === 'addComment') {
@@ -617,6 +622,7 @@ export class Recruspace implements INodeType {
                             throw new NodeOperationError(
                                 this.getNode(),
                                 'Candidate ID is required. Please provide a valid Candidate ID.',
+                                { itemIndex: i },
                             );
                         }
 
@@ -679,6 +685,7 @@ export class Recruspace implements INodeType {
                             throw new NodeOperationError(
                                 this.getNode(),
                                 `Failed to add note (${statusCode}): ${JSON.stringify(errorMessage)}\n\nURL: ${apiUrl}\nRequest body: ${JSON.stringify({ candidate_id: candidateId, text: noteText }, null, 2)}`,
+                                { itemIndex: i },
                             );
                         }
                     }
