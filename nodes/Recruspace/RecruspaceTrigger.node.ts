@@ -1,10 +1,9 @@
 import type {
 	IHookFunctions,
 	IWebhookFunctions,
-	IWebhookResponseData,
 	INodeType,
 	INodeTypeDescription,
-	IDataObject,
+	IWebhookResponseData,
 } from 'n8n-workflow';
 
 export class RecruspaceTrigger implements INodeType {
@@ -58,26 +57,22 @@ export class RecruspaceTrigger implements INodeType {
 		],
 	};
 
-	// Webhook registration / deletion
 	webhookMethods = {
 		default: {
-			// We don't track existing webhooks by ID on our side; always (re)create.
 			async checkExists(this: IHookFunctions): Promise<boolean> {
 				return false;
 			},
-
-			// When workflow is activated
 			async create(this: IHookFunctions): Promise<boolean> {
 				const credentials = await this.getCredentials('recruspaceApi');
-				const baseUrl = (credentials.baseUrl as string) || 'https://dev.api.recruspace.com/';
+				const baseUrl = (credentials.baseUrl as string) || 'http://localhost:5000';
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				const events = this.getNodeParameter('events') as string[];
-
+				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 				await this.helpers.httpRequest({
 					method: 'POST',
-					url: `${baseUrl}/api/v1/integrations/webhooks/`,
+					url: `${cleanBaseUrl}/subscribe`,
 					headers: {
-						Authorization: `Bearer ${credentials.apiKey}`,
+						'x-api-key': credentials.apiKey as string,
 						'Content-Type': 'application/json',
 					},
 					body: {
@@ -86,21 +81,18 @@ export class RecruspaceTrigger implements INodeType {
 					},
 					json: true,
 				});
-
 				return true;
 			},
-
-			// When workflow is deactivated
 			async delete(this: IHookFunctions): Promise<boolean> {
 				const credentials = await this.getCredentials('recruspaceApi');
-				const baseUrl = (credentials.baseUrl as string) || 'https://dev.api.recruspace.com/';
+				const baseUrl = (credentials.baseUrl as string) || 'http://localhost:5000';
 				const webhookUrl = this.getNodeWebhookUrl('default');
-
+				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 				await this.helpers.httpRequest({
 					method: 'DELETE',
-					url: `${baseUrl}/api/v1/integrations/webhooks/`,
+					url: `${cleanBaseUrl}/subscribe`,
 					headers: {
-						Authorization: `Bearer ${credentials.apiKey}`,
+						'x-api-key': credentials.apiKey as string,
 						'Content-Type': 'application/json',
 					},
 					body: {
@@ -108,16 +100,13 @@ export class RecruspaceTrigger implements INodeType {
 					},
 					json: true,
 				});
-
 				return true;
 			},
 		},
 	};
 
-	// Handle incoming webhook
 	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
-		const bodyData = this.getRequestObject().body as IDataObject;
-
+		const bodyData = this.getRequestObject().body;
 		return {
 			workflowData: [
 				[
@@ -129,3 +118,4 @@ export class RecruspaceTrigger implements INodeType {
 		};
 	}
 }
+

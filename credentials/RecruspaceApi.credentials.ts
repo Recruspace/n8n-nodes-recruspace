@@ -10,9 +10,11 @@ export class RecruspaceApi implements ICredentialType {
 	name = 'recruspaceApi';
 
 	displayName = 'Recruspace API';
-	icon = 'file:recruspace.svg' as Icon;
 
-	documentationUrl = 'https://github.com/org/-recruspace?tab=readme-ov-file#credentials';
+	icon: Icon = 'file:../nodes/Recruspace/recruspace.svg';
+
+	documentationUrl =
+		'https://github.com/ATS-Recruspace/n8n-nodes-recruspace#credentials';
 
 	properties: INodeProperties[] = [
 		{
@@ -20,9 +22,9 @@ export class RecruspaceApi implements ICredentialType {
 			name: 'baseUrl',
 			type: 'string',
 			required: true,
-			default: 'https://dev.api.recruspace.com/',
-			description: 'The base URL of your Recruspace API instance',
-			placeholder: 'https://dev.api.recruspace.com/',
+			default: 'http://localhost:5000',
+			description: 'The base URL of your n8n middleware (default: http://localhost:5000)',
+			placeholder: 'http://localhost:5000',
 		},
 		{
 			displayName: 'API Key',
@@ -31,6 +33,7 @@ export class RecruspaceApi implements ICredentialType {
 			typeOptions: { password: true },
 			required: true,
 			default: '',
+			description: 'Your Recruspace API key',
 		},
 	];
 
@@ -38,7 +41,7 @@ export class RecruspaceApi implements ICredentialType {
 		type: 'generic',
 		properties: {
 			headers: {
-				'Authorization': '=Bearer {{$credentials.apiKey}}',
+				Authorization: '=Bearer {{$credentials.apiKey}}',
 			},
 		},
 	};
@@ -46,7 +49,12 @@ export class RecruspaceApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl}}',
-			url: '/api/v1/integrations/api-keys/validate/',
+			url: '/auth/test',
+			method: 'POST',
+			headers: {
+				'x-api-key': '={{$credentials.apiKey}}',
+			},
 		},
 	};
 }
+
