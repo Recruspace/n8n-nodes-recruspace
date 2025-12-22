@@ -49,12 +49,11 @@ export class RecruspaceApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl}}',
-			url: '/auth/test',
-			method: 'POST',
+			url: '/auth/validate',
+			method: 'GET',
 			headers: {
 				'x-api-key': '={{$credentials.apiKey}}',
 			},
 		},
 	};
 }
-

@@ -42,15 +42,15 @@ export class RecruspaceTrigger implements INodeType {
 				type: 'multiOptions',
 				options: [
 					{
-						name: 'Candidate Created',
-						value: 'candidate_created',
+						name: 'Candidate Applied',
+						value: 'candidate_applied',
 					},
 					{
 						name: 'Candidate Replied to Email',
 						value: 'candidate_replied_to_email',
 					},
 				],
-				default: ['candidate_created'],
+				default: ['candidate_applied'],
 				required: true,
 				description: 'Select the events from Recruspace to trigger this workflow',
 			},
