@@ -14,7 +14,6 @@ export class RecruspaceTrigger implements INodeType {
 		group: ['trigger'],
 		version: 1,
 		usableAsTool: true,
-		subtitle: '={{$parameter["events"].join(", ")}}',
 		description: 'Receives real-time events from Recruspace ATS',
 		defaults: {
 			name: 'Recruspace Trigger',
@@ -37,22 +36,25 @@ export class RecruspaceTrigger implements INodeType {
 		],
 		properties: [
 			{
-				displayName: 'Events to Listen',
-				name: 'events',
-				type: 'multiOptions',
+				displayName: 'Event',
+				name: 'event',
+				type: 'options',
+				noDataExpression: true,
 				options: [
 					{
-						name: 'Candidate Applied',
-						value: 'candidate_applied',
+						// Backend type: candidate_created
+						name: 'Candidate Added',
+						value: 'candidate_created',
 					},
 					{
-						name: 'Candidate Replied to Email',
-						value: 'candidate_replied_to_email',
+						// Backend type: candidate_replied
+						name: 'Candidate Replied',
+						value: 'candidate_replied',
 					},
 				],
-				default: ['candidate_applied'],
+				default: 'candidate_created',
 				required: true,
-				description: 'Select the events from Recruspace to trigger this workflow',
+				description: 'Select the event from Recruspace to trigger this workflow',
 			},
 		],
 	};
@@ -64,20 +66,21 @@ export class RecruspaceTrigger implements INodeType {
 			},
 			async create(this: IHookFunctions): Promise<boolean> {
 				const credentials = await this.getCredentials('recruspaceApi');
-				const baseUrl = (credentials.baseUrl as string) || 'http://localhost:5000';
+				const baseUrl = 'https://n8n.api.recruspace.com';
 				const webhookUrl = this.getNodeWebhookUrl('default');
-				const events = this.getNodeParameter('events') as string[];
+				const event = this.getNodeParameter('event') as string;
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+
+				// Subscribe to the selected event
 				await this.helpers.httpRequest({
 					method: 'POST',
-					url: `${cleanBaseUrl}/subscribe`,
+					url: `${cleanBaseUrl}/subscribe?type=${event}`,
 					headers: {
 						'x-api-key': credentials.apiKey as string,
 						'Content-Type': 'application/json',
 					},
 					body: {
-						target_url: webhookUrl,
-						events,
+						hookUrl: webhookUrl,
 					},
 					json: true,
 				});
@@ -85,21 +88,29 @@ export class RecruspaceTrigger implements INodeType {
 			},
 			async delete(this: IHookFunctions): Promise<boolean> {
 				const credentials = await this.getCredentials('recruspaceApi');
-				const baseUrl = (credentials.baseUrl as string) || 'http://localhost:5000';
+				const baseUrl = 'https://n8n.api.recruspace.com';
 				const webhookUrl = this.getNodeWebhookUrl('default');
+				const event = this.getNodeParameter('event') as string;
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-				await this.helpers.httpRequest({
-					method: 'DELETE',
-					url: `${cleanBaseUrl}/subscribe`,
-					headers: {
-						'x-api-key': credentials.apiKey as string,
-						'Content-Type': 'application/json',
-					},
-					body: {
-						target_url: webhookUrl,
-					},
-					json: true,
-				});
+
+				// Unsubscribe from the selected event
+				// Silently ignore errors - webhook may already be deleted or backend unavailable
+				try {
+					await this.helpers.httpRequest({
+						method: 'DELETE',
+						url: `${cleanBaseUrl}/subscribe?type=${event}`,
+						headers: {
+							'x-api-key': credentials.apiKey as string,
+							'Content-Type': 'application/json',
+						},
+						body: {
+							hookUrl: webhookUrl,
+						},
+						json: true,
+					});
+				} catch {
+					// Ignore delete errors - webhook cleanup is best-effort
+				}
 				return true;
 			},
 		},

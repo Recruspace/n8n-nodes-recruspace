@@ -18,15 +18,6 @@ export class RecruspaceApi implements ICredentialType {
 
 	properties: INodeProperties[] = [
 		{
-			displayName: 'Base URL',
-			name: 'baseUrl',
-			type: 'string',
-			required: true,
-			default: 'http://localhost:5000',
-			description: 'The base URL of your n8n middleware (default: http://localhost:5000)',
-			placeholder: 'http://localhost:5000',
-		},
-		{
 			displayName: 'API Key',
 			name: 'apiKey',
 			type: 'string',
@@ -48,7 +39,7 @@ export class RecruspaceApi implements ICredentialType {
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '={{$credentials.baseUrl}}',
+			baseURL: 'https://n8n.api.recruspace.com',
 			url: '/auth/validate',
 			method: 'GET',
 			headers: {
