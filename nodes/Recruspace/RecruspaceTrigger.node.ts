@@ -42,14 +42,34 @@ export class RecruspaceTrigger implements INodeType {
 				noDataExpression: true,
 				options: [
 					{
-						// Backend type: candidate_created
-						name: 'Candidate Added',
-						value: 'candidate_created',
+						name: 'Bulk Import Completed',
+						value: 'bulk_import_completed',
+						description: 'Triggers when a bulk import is completed',
 					},
 					{
-						// Backend type: candidate_replied
-						name: 'Candidate Replied',
-						value: 'candidate_replied',
+						name: 'Candidate Applied',
+						value: 'candidate_created',
+						description: 'Triggers when a new candidate is added',
+					},
+					{
+						name: 'Candidate Replied Email',
+						value: 'candidate_replied_to_email',
+						description: 'Triggers when a candidate replies to an email',
+					},
+					{
+						name: 'Job Closed',
+						value: 'job_closed',
+						description: 'Triggers when a job post is closed',
+					},
+					{
+						name: 'New Job Posted',
+						value: 'new_job_posted',
+						description: 'Triggers when a new job post goes live',
+					},
+					{
+						name: 'Stage Changed',
+						value: 'stage_changed',
+						description: 'Triggers when a candidate stage is changed',
 					},
 				],
 				default: 'candidate_created',

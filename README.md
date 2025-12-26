@@ -15,7 +15,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 You need a Recruspace API Key to use this node.
 
 1. Log in to your Recruspace account.
-2. Go to **Settings** > **Integrations** (or API Settings).
+2. Go to **Settings** > **Career Page**.
 3. Generate a new API Key.
 4. In n8n, add a new "Recruspace API" credential and paste your API Key.
 
@@ -23,32 +23,45 @@ You need a Recruspace API Key to use this node.
 
 This node supports the following operations:
 
-### 1. Recruspace Trigger
+### Triggers
 Starts your workflow when specific events occur in Recruspace:
-* **Candidate Added**: Triggered when a new candidate is added to Recruspace.
-* **Candidate Replied**: Triggered when a candidate replies to an email.
+* **Bulk Import Completed**: Triggered when a bulk import is completed.
+* **Candidate Applied**: Triggered when a new candidate is added.
+* **Candidate Replied Email**: Triggered when a candidate replies to an email.
+* **Job Closed**: Triggered when a job post is closed.
+* **New Job Posted**: Triggered when a new job post goes live.
+* **Stage Changed**: Triggered when a candidate's stage is changed.
 
-### 2. Candidate Actions
+### Candidate Actions
 * **Create Candidate**: Create a new candidate profile.
     * Supports uploading CVs via Binary Data.
-    * Can associate the candidate directly with a **Job Post** or a **Talent Pool**.
+    * Can associate the candidate with a **Job Post** or a **Talent Pool**.
     * Supports additional fields like Phone Number.
-* **Add Candidate Note**: Add a comment/note to an existing candidate profile using their Candidate ID.
+* **Add Note**: Add a comment/note to an existing candidate profile.
+* **Add Tag**: Add a tag to an existing candidate.
+* **Search**: Search for candidates by email.
+
+### Talent Pool Actions
+* **Create Talent Pool**: Create a new talent pool.
 
 ## Usage Examples
 
 ### Creating a Candidate from a Form
-1. Use a **Webhook** or **Typeform** node to receive application data (Name, Email, CV).
-2. Add the **Recruspace** node.
-3. Select **Operation**: `Create Candidate`.
-4. Map the Name and Email fields.
-5. Set **CV Source** to `Binary Data` and ensure the previous node passes the file.
-6. Choose to associate with a **Job Post** (select from list) or **Talent Pool**.
+1. Use a **Webhook** or **Typeform** node to receive application data.
+2. Add the **Recruspace** node with **Operation**: `Create Candidate`.
+3. Map the Name and Email fields.
+4. Set **CV Source** to `Binary Data` if uploading a CV.
+5. Choose to associate with a **Job Post** or **Talent Pool**.
 
 ### Adding a Note to a Candidate
-1. Use **Recruspace** node with **Operation**: `Add Candidate Note`.
-2. Enter the **Candidate ID** (you can get this from Recruspace or from a previous workflow step).
+1. Use **Recruspace** node with **Operation**: `Add Note`.
+2. Enter the **Candidate ID**.
 3. Enter your note text.
+
+### Searching for a Candidate
+1. Use **Recruspace** node with **Operation**: `Search`.
+2. Enter the email address to search.
+3. Choose the result strategy: Return First, Stop if Multiple, or Return All.
 
 ## Compatibility
 
