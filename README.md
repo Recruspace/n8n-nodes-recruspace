@@ -56,5 +56,6 @@ Starts your workflow when specific events occur in Recruspace:
 
 ## Resources
 
+* [GitHub Repository](https://github.com/Recruspace/n8n-nodes-recruspace)
 * [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
 * [Recruspace Website](https://recruspace.com/)
