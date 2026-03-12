@@ -426,19 +426,19 @@ export class Recruspace implements INodeType {
 	methods = {
 		listSearch: {
 			async getTalentPools(this: ILoadOptionsFunctions): Promise<INodeListSearchResult> {
-				const credentials = await this.getCredentials('recruspaceApi');
 				const baseUrl = 'https://n8n.api.recruspace.com';
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
 				try {
-					const response = await this.helpers.httpRequest({
+					const response = await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						'recruspaceApi',
+						{
 						method: 'GET',
 						url: `${cleanBaseUrl}/companies-talent-pools`,
-						headers: {
-							'x-api-key': credentials.apiKey as string,
-						},
 						json: true,
-					});
+						},
+					);
 
 					const pools = (response as Array<{ id: number; name: string }>) || [];
 					const results = pools.map((pool) => ({
@@ -452,19 +452,19 @@ export class Recruspace implements INodeType {
 				}
 			},
 			async getJobPosts(this: ILoadOptionsFunctions): Promise<INodeListSearchResult> {
-				const credentials = await this.getCredentials('recruspaceApi');
 				const baseUrl = 'https://n8n.api.recruspace.com';
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
 				try {
-					const response = await this.helpers.httpRequest({
+					const response = await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						'recruspaceApi',
+						{
 						method: 'GET',
 						url: `${cleanBaseUrl}/companies-job-posts`,
-						headers: {
-							'x-api-key': credentials.apiKey as string,
-						},
 						json: true,
-					});
+						},
+					);
 
 					const jobs = (response as Array<{ title: string; hash: string }>) || [];
 					const results = jobs.map((job) => ({
@@ -483,7 +483,6 @@ export class Recruspace implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const credentials = await this.getCredentials('recruspaceApi');
 		const baseUrl = 'https://n8n.api.recruspace.com';
 
 		for (let i = 0; i < items.length; i++) {
@@ -600,15 +599,18 @@ export class Recruspace implements INodeType {
 							]);
 
 							// Send multipart/form-data request
-							const response = await this.helpers.httpRequest({
+							const response = await this.helpers.httpRequestWithAuthentication.call(
+								this,
+								'recruspaceApi',
+								{
 								method: 'POST',
 								url: apiUrl,
 								headers: {
-									'x-api-key': credentials.apiKey as string,
 									'Content-Type': `multipart/form-data; boundary=${boundary}`,
 								},
 								body: bodyBuffer,
-							});
+								},
+							);
 
 							const responseObject = response as IDataObject;
 							const responseContent =
@@ -679,11 +681,13 @@ export class Recruspace implements INodeType {
 						const apiUrl = `${cleanBaseUrl}/add-note`;
 
 						try {
-							const response = await this.helpers.httpRequest({
+							const response = await this.helpers.httpRequestWithAuthentication.call(
+								this,
+								'recruspaceApi',
+								{
 								method: 'POST',
 								url: apiUrl,
 								headers: {
-									'x-api-key': credentials.apiKey as string,
 									'Content-Type': 'application/json',
 								},
 								body: {
@@ -691,7 +695,8 @@ export class Recruspace implements INodeType {
 									text: noteText,
 								},
 								json: true,
-							});
+								},
+							);
 
 							returnData.push({
 								json: {
@@ -751,11 +756,13 @@ export class Recruspace implements INodeType {
 						}
 
 						try {
-							const response = await this.helpers.httpRequest({
+							const response = await this.helpers.httpRequestWithAuthentication.call(
+								this,
+								'recruspaceApi',
+								{
 								method: 'GET',
 								url: `${cleanBaseUrl}/actions/candidates/search-by-email`,
 								headers: {
-									'x-api-key': credentials.apiKey as string,
 									'Content-Type': 'application/json',
 								},
 								qs: {
@@ -763,7 +770,8 @@ export class Recruspace implements INodeType {
 									type: resultStrategy,
 								},
 								json: true,
-							});
+								},
+							);
 
 							const results = Array.isArray(response) ? response : [response];
 
@@ -801,11 +809,13 @@ export class Recruspace implements INodeType {
 						}
 
 						try {
-							const response = await this.helpers.httpRequest({
+							const response = await this.helpers.httpRequestWithAuthentication.call(
+								this,
+								'recruspaceApi',
+								{
 								method: 'POST',
 								url: `${cleanBaseUrl}/actions/candidates/add-tag`,
 								headers: {
-									'x-api-key': credentials.apiKey as string,
 									'Content-Type': 'application/json',
 								},
 								body: {
@@ -813,7 +823,8 @@ export class Recruspace implements INodeType {
 									title: tagTitle,
 								},
 								json: true,
-							});
+								},
+							);
 
 							returnData.push({
 								json: response as IDataObject,
@@ -848,18 +859,21 @@ export class Recruspace implements INodeType {
 						}
 
 						try {
-							const response = await this.helpers.httpRequest({
+							const response = await this.helpers.httpRequestWithAuthentication.call(
+								this,
+								'recruspaceApi',
+								{
 								method: 'POST',
 								url: `${cleanBaseUrl}/create-talent-pool`,
 								headers: {
-									'x-api-key': credentials.apiKey as string,
 									'Content-Type': 'application/json',
 								},
 								body: {
 									name: talentPoolName,
 								},
 								json: true,
-							});
+								},
+							);
 
 							returnData.push({
 								json: response as IDataObject,

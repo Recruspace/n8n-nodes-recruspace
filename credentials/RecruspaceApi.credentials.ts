@@ -32,7 +32,7 @@ export class RecruspaceApi implements ICredentialType {
 		type: 'generic',
 		properties: {
 			headers: {
-				Authorization: '=Bearer {{$credentials.apiKey}}',
+				'x-api-key': '={{$credentials.apiKey}}',
 			},
 		},
 	};

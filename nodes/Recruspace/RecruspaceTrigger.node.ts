@@ -85,18 +85,16 @@ export class RecruspaceTrigger implements INodeType {
 				return false;
 			},
 			async create(this: IHookFunctions): Promise<boolean> {
-				const credentials = await this.getCredentials('recruspaceApi');
 				const baseUrl = 'https://n8n.api.recruspace.com';
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				const event = this.getNodeParameter('event') as string;
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
 				// Subscribe to the selected event
-				await this.helpers.httpRequest({
+				await this.helpers.httpRequestWithAuthentication.call(this, 'recruspaceApi', {
 					method: 'POST',
 					url: `${cleanBaseUrl}/subscribe?type=${event}`,
 					headers: {
-						'x-api-key': credentials.apiKey as string,
 						'Content-Type': 'application/json',
 					},
 					body: {
@@ -107,7 +105,6 @@ export class RecruspaceTrigger implements INodeType {
 				return true;
 			},
 			async delete(this: IHookFunctions): Promise<boolean> {
-				const credentials = await this.getCredentials('recruspaceApi');
 				const baseUrl = 'https://n8n.api.recruspace.com';
 				const webhookUrl = this.getNodeWebhookUrl('default');
 				const event = this.getNodeParameter('event') as string;
@@ -116,11 +113,10 @@ export class RecruspaceTrigger implements INodeType {
 				// Unsubscribe from the selected event
 				// Silently ignore errors - webhook may already be deleted or backend unavailable
 				try {
-					await this.helpers.httpRequest({
+					await this.helpers.httpRequestWithAuthentication.call(this, 'recruspaceApi', {
 						method: 'DELETE',
 						url: `${cleanBaseUrl}/subscribe?type=${event}`,
 						headers: {
-							'x-api-key': credentials.apiKey as string,
 							'Content-Type': 'application/json',
 						},
 						body: {
@@ -149,4 +145,3 @@ export class RecruspaceTrigger implements INodeType {
 		};
 	}
 }
-
