@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-recruspace",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "n8n node for Recruspace",
   "license": "MIT",
   "homepage": "https://github.com/Recruspace/n8n-nodes-recruspace#readme",
