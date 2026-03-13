@@ -1,10 +1,40 @@
 import type {
+	IDataObject,
 	IHookFunctions,
 	IWebhookFunctions,
 	INodeType,
 	INodeTypeDescription,
 	IWebhookResponseData,
 } from 'n8n-workflow';
+import { NodeOperationError } from 'n8n-workflow';
+
+type RecruspaceTriggerAuthRequestHelper = (
+	this: IHookFunctions,
+	credentialType: string,
+	requestOptions: IDataObject,
+) => Promise<unknown>;
+
+async function httpRequestWithRecruspaceAuth(
+	context: IHookFunctions,
+	requestOptions: IDataObject,
+): Promise<unknown> {
+	const helpers = context.helpers as unknown as {
+		httpRequestWithAuthentication?: RecruspaceTriggerAuthRequestHelper;
+		requestWithAuthentication?: RecruspaceTriggerAuthRequestHelper;
+	};
+
+	const requestWithAuth =
+		helpers.httpRequestWithAuthentication ?? helpers['requestWithAuthentication'];
+
+	if (!requestWithAuth) {
+		throw new NodeOperationError(
+			context.getNode(),
+			'This n8n version does not support authenticated HTTP helper requests. Please upgrade n8n.',
+		);
+	}
+
+	return await requestWithAuth.call(context, 'recruspaceApi', requestOptions);
+}
 
 export class RecruspaceTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -91,7 +121,7 @@ export class RecruspaceTrigger implements INodeType {
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
 				// Subscribe to the selected event
-				await this.helpers.httpRequestWithAuthentication.call(this, 'recruspaceApi', {
+				await httpRequestWithRecruspaceAuth(this, {
 					method: 'POST',
 					url: `${cleanBaseUrl}/subscribe?type=${event}`,
 					headers: {
@@ -113,7 +143,7 @@ export class RecruspaceTrigger implements INodeType {
 				// Unsubscribe from the selected event
 				// Silently ignore errors - webhook may already be deleted or backend unavailable
 				try {
-					await this.helpers.httpRequestWithAuthentication.call(this, 'recruspaceApi', {
+					await httpRequestWithRecruspaceAuth(this, {
 						method: 'DELETE',
 						url: `${cleanBaseUrl}/subscribe?type=${event}`,
 						headers: {

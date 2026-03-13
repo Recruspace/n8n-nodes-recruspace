@@ -9,6 +9,36 @@ import type {
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
+type RecruspaceRequestContext = IExecuteFunctions | ILoadOptionsFunctions;
+
+type RecruspaceAuthRequestHelper = (
+	this: RecruspaceRequestContext,
+	credentialType: string,
+	requestOptions: IDataObject,
+) => Promise<unknown>;
+
+async function httpRequestWithRecruspaceAuth(
+	context: RecruspaceRequestContext,
+	requestOptions: IDataObject,
+): Promise<unknown> {
+	const helpers = context.helpers as unknown as {
+		httpRequestWithAuthentication?: RecruspaceAuthRequestHelper;
+		requestWithAuthentication?: RecruspaceAuthRequestHelper;
+	};
+
+	const requestWithAuth =
+		helpers.httpRequestWithAuthentication ?? helpers['requestWithAuthentication'];
+
+	if (!requestWithAuth) {
+		throw new NodeOperationError(
+			context.getNode(),
+			'This n8n version does not support authenticated HTTP helper requests. Please upgrade n8n.',
+		);
+	}
+
+	return await requestWithAuth.call(context, 'recruspaceApi', requestOptions);
+}
+
 export class Recruspace implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Recruspace',
@@ -430,15 +460,11 @@ export class Recruspace implements INodeType {
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
 				try {
-					const response = await this.helpers.httpRequestWithAuthentication.call(
-						this,
-						'recruspaceApi',
-						{
+					const response = await httpRequestWithRecruspaceAuth(this, {
 						method: 'GET',
 						url: `${cleanBaseUrl}/companies-talent-pools`,
 						json: true,
-						},
-					);
+					});
 
 					const pools = (response as Array<{ id: number; name: string }>) || [];
 					const results = pools.map((pool) => ({
@@ -456,15 +482,11 @@ export class Recruspace implements INodeType {
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
 				try {
-					const response = await this.helpers.httpRequestWithAuthentication.call(
-						this,
-						'recruspaceApi',
-						{
+					const response = await httpRequestWithRecruspaceAuth(this, {
 						method: 'GET',
 						url: `${cleanBaseUrl}/companies-job-posts`,
 						json: true,
-						},
-					);
+					});
 
 					const jobs = (response as Array<{ title: string; hash: string }>) || [];
 					const results = jobs.map((job) => ({
@@ -599,18 +621,14 @@ export class Recruspace implements INodeType {
 							]);
 
 							// Send multipart/form-data request
-							const response = await this.helpers.httpRequestWithAuthentication.call(
-								this,
-								'recruspaceApi',
-								{
+							const response = await httpRequestWithRecruspaceAuth(this, {
 								method: 'POST',
 								url: apiUrl,
 								headers: {
 									'Content-Type': `multipart/form-data; boundary=${boundary}`,
 								},
 								body: bodyBuffer,
-								},
-							);
+							});
 
 							const responseObject = response as IDataObject;
 							const responseContent =
@@ -681,10 +699,7 @@ export class Recruspace implements INodeType {
 						const apiUrl = `${cleanBaseUrl}/add-note`;
 
 						try {
-							const response = await this.helpers.httpRequestWithAuthentication.call(
-								this,
-								'recruspaceApi',
-								{
+							const response = await httpRequestWithRecruspaceAuth(this, {
 								method: 'POST',
 								url: apiUrl,
 								headers: {
@@ -695,8 +710,7 @@ export class Recruspace implements INodeType {
 									text: noteText,
 								},
 								json: true,
-								},
-							);
+							});
 
 							returnData.push({
 								json: {
@@ -756,10 +770,7 @@ export class Recruspace implements INodeType {
 						}
 
 						try {
-							const response = await this.helpers.httpRequestWithAuthentication.call(
-								this,
-								'recruspaceApi',
-								{
+							const response = await httpRequestWithRecruspaceAuth(this, {
 								method: 'GET',
 								url: `${cleanBaseUrl}/actions/candidates/search-by-email`,
 								headers: {
@@ -770,8 +781,7 @@ export class Recruspace implements INodeType {
 									type: resultStrategy,
 								},
 								json: true,
-								},
-							);
+							});
 
 							const results = Array.isArray(response) ? response : [response];
 
@@ -809,10 +819,7 @@ export class Recruspace implements INodeType {
 						}
 
 						try {
-							const response = await this.helpers.httpRequestWithAuthentication.call(
-								this,
-								'recruspaceApi',
-								{
+							const response = await httpRequestWithRecruspaceAuth(this, {
 								method: 'POST',
 								url: `${cleanBaseUrl}/actions/candidates/add-tag`,
 								headers: {
@@ -823,8 +830,7 @@ export class Recruspace implements INodeType {
 									title: tagTitle,
 								},
 								json: true,
-								},
-							);
+							});
 
 							returnData.push({
 								json: response as IDataObject,
@@ -859,10 +865,7 @@ export class Recruspace implements INodeType {
 						}
 
 						try {
-							const response = await this.helpers.httpRequestWithAuthentication.call(
-								this,
-								'recruspaceApi',
-								{
+							const response = await httpRequestWithRecruspaceAuth(this, {
 								method: 'POST',
 								url: `${cleanBaseUrl}/create-talent-pool`,
 								headers: {
@@ -872,8 +875,7 @@ export class Recruspace implements INodeType {
 									name: talentPoolName,
 								},
 								json: true,
-								},
-							);
+							});
 
 							returnData.push({
 								json: response as IDataObject,
