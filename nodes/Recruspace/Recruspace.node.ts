@@ -6,8 +6,9 @@ import type {
 	INodeTypeDescription,
 	ILoadOptionsFunctions,
 	INodeListSearchResult,
+	JsonObject,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 type RecruspaceRequestContext = IExecuteFunctions | ILoadOptionsFunctions;
 
@@ -473,8 +474,10 @@ export class Recruspace implements INodeType {
 					}));
 
 					return { results };
-				} catch {
-					return { results: [] };
+				} catch (error) {
+					throw new NodeApiError(this.getNode(), error as JsonObject, {
+						message: 'Failed to load talent pools from Recruspace',
+					});
 				}
 			},
 			async getJobPosts(this: ILoadOptionsFunctions): Promise<INodeListSearchResult> {
@@ -495,8 +498,10 @@ export class Recruspace implements INodeType {
 					}));
 
 					return { results };
-				} catch {
-					return { results: [] };
+				} catch (error) {
+					throw new NodeApiError(this.getNode(), error as JsonObject, {
+						message: 'Failed to load job posts from Recruspace',
+					});
 				}
 			},
 		},
@@ -638,43 +643,11 @@ export class Recruspace implements INodeType {
 								json: responseContent,
 								pairedItem: { item: i },
 							});
-						} catch (error: unknown) {
-							let errorMessage: unknown = 'Unknown error occurred';
-							let statusCode: string | number = 'unknown';
-
-							if (typeof error === 'object' && error !== null) {
-								const errorObj = error as {
-									response?: {
-										data?: unknown;
-										status?: number;
-									};
-									message?: string;
-								};
-
-								const responseData = errorObj.response?.data;
-
-								if (typeof responseData === 'object' && responseData !== null) {
-									const dataObj = responseData as Record<string, unknown>;
-									errorMessage =
-										dataObj.detail ??
-										dataObj.message ??
-										responseData ??
-										errorObj.message ??
-										errorMessage;
-								} else {
-									errorMessage = responseData ?? errorObj.message ?? errorMessage;
-								}
-
-								if (errorObj.response?.status) {
-									statusCode = errorObj.response.status;
-								}
-							}
-
-							throw new NodeOperationError(
-								this.getNode(),
-								`Failed to create candidate (${statusCode}): ${JSON.stringify(errorMessage)}\n\nBase URL: ${baseUrl}\nFull URL: ${apiUrl}`,
-								{ itemIndex: i },
-							);
+						} catch (error) {
+							throw new NodeApiError(this.getNode(), error as JsonObject, {
+								message: 'Failed to create candidate in Recruspace',
+								itemIndex: i,
+							});
 						}
 					} else if (operation === 'addNote') {
 						const candidateId = this.getNodeParameter('candidateId', i) as number;
@@ -719,43 +692,11 @@ export class Recruspace implements INodeType {
 								},
 								pairedItem: { item: i },
 							});
-						} catch (error: unknown) {
-							let errorMessage: unknown = 'Unknown error occurred';
-							let statusCode: string | number = 'unknown';
-
-							if (typeof error === 'object' && error !== null) {
-								const errorObj = error as {
-									response?: {
-										data?: unknown;
-										status?: number;
-									};
-									message?: string;
-								};
-
-								const responseData = errorObj.response?.data;
-
-								if (typeof responseData === 'object' && responseData !== null) {
-									const dataObj = responseData as Record<string, unknown>;
-									errorMessage =
-										dataObj.detail ??
-										dataObj.message ??
-										responseData ??
-										errorObj.message ??
-										errorMessage;
-								} else {
-									errorMessage = responseData ?? errorObj.message ?? errorMessage;
-								}
-
-								if (errorObj.response?.status) {
-									statusCode = errorObj.response.status;
-								}
-							}
-
-							throw new NodeOperationError(
-								this.getNode(),
-								`Failed to add note (${statusCode}): ${JSON.stringify(errorMessage)}\n\nURL: ${apiUrl}\nRequest body: ${JSON.stringify({ candidate_id: candidateId, text: noteText }, null, 2)}`,
-								{ itemIndex: i },
-							);
+						} catch (error) {
+							throw new NodeApiError(this.getNode(), error as JsonObject, {
+								message: 'Failed to add note to candidate',
+								itemIndex: i,
+							});
 						}
 					} else if (operation === 'search') {
 						const email = this.getNodeParameter('email', i) as string;
@@ -791,12 +732,11 @@ export class Recruspace implements INodeType {
 									pairedItem: { item: i },
 								});
 							}
-						} catch (error: unknown) {
-							throw new NodeOperationError(
-								this.getNode(),
-								`Failed to search candidate: ${(error as Error).message}`,
-								{ itemIndex: i },
-							);
+						} catch (error) {
+							throw new NodeApiError(this.getNode(), error as JsonObject, {
+								message: 'Failed to search candidate by email',
+								itemIndex: i,
+							});
 						}
 					} else if (operation === 'addTag') {
 						const candidateId = this.getNodeParameter('tagCandidateId', i) as number;
@@ -836,20 +776,11 @@ export class Recruspace implements INodeType {
 								json: response as IDataObject,
 								pairedItem: { item: i },
 							});
-						} catch (error: unknown) {
-							const errorObj = error as { response?: { data?: IDataObject, status?: number } };
-							let errorMessage = (error as Error).message;
-
-							if (errorObj.response?.data) {
-								const data = errorObj.response.data;
-								errorMessage = String(data.message || data.error || JSON.stringify(data));
-							}
-
-							throw new NodeOperationError(
-								this.getNode(),
-								`Failed to add tag: ${errorMessage}`,
-								{ itemIndex: i },
-							);
+						} catch (error) {
+							throw new NodeApiError(this.getNode(), error as JsonObject, {
+								message: 'Failed to add tag to candidate',
+								itemIndex: i,
+							});
 						}
 					}
 				} else if (resource === 'talentPool') {
@@ -881,12 +812,11 @@ export class Recruspace implements INodeType {
 								json: response as IDataObject,
 								pairedItem: { item: i },
 							});
-						} catch (error: unknown) {
-							throw new NodeOperationError(
-								this.getNode(),
-								`Failed to create talent pool: ${(error as Error).message}`,
-								{ itemIndex: i },
-							);
+						} catch (error) {
+							throw new NodeApiError(this.getNode(), error as JsonObject, {
+								message: 'Failed to create talent pool',
+								itemIndex: i,
+							});
 						}
 					}
 				}

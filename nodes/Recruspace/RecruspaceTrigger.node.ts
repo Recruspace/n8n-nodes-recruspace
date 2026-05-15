@@ -5,8 +5,9 @@ import type {
 	INodeType,
 	INodeTypeDescription,
 	IWebhookResponseData,
+	JsonObject,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 type RecruspaceTriggerAuthRequestHelper = (
 	this: IHookFunctions,
@@ -140,8 +141,6 @@ export class RecruspaceTrigger implements INodeType {
 				const event = this.getNodeParameter('event') as string;
 				const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
-				// Unsubscribe from the selected event
-				// Silently ignore errors - webhook may already be deleted or backend unavailable
 				try {
 					await httpRequestWithRecruspaceAuth(this, {
 						method: 'DELETE',
@@ -154,8 +153,16 @@ export class RecruspaceTrigger implements INodeType {
 						},
 						json: true,
 					});
-				} catch {
-					// Ignore delete errors - webhook cleanup is best-effort
+				} catch (error) {
+					const message = error instanceof Error ? error.message : String(error);
+					this.logger.warn(
+						`Recruspace webhook unsubscribe failed for event "${event}" at ${webhookUrl}: ${message}. The webhook may still be active on Recruspace and should be removed manually.`,
+					);
+					throw new NodeApiError(this.getNode(), error as JsonObject, {
+						message: 'Failed to unsubscribe Recruspace webhook',
+						description:
+							'The webhook may still be active on Recruspace and should be removed manually.',
+					});
 				}
 				return true;
 			},
