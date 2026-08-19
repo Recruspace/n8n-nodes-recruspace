@@ -7,7 +7,7 @@ import type {
 	IWebhookResponseData,
 	JsonObject,
 } from 'n8n-workflow';
-import { NodeApiError, NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 type RecruspaceTriggerAuthRequestHelper = (
 	this: IHookFunctions,
@@ -44,13 +44,13 @@ export class RecruspaceTrigger implements INodeType {
 		icon: 'file:recruspace.svg',
 		group: ['trigger'],
 		version: 1,
-		usableAsTool: true,
+		subtitle: '={{$parameter["event"]}}',
 		description: 'Receives real-time events from Recruspace ATS',
 		defaults: {
 			name: 'Recruspace Trigger',
 		},
 		inputs: [],
-		outputs: ['main'],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'recruspaceApi',

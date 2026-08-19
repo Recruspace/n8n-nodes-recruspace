@@ -8,7 +8,7 @@ import type {
 	INodeListSearchResult,
 	JsonObject,
 } from 'n8n-workflow';
-import { NodeApiError, NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 type RecruspaceRequestContext = IExecuteFunctions | ILoadOptionsFunctions;
 
@@ -53,8 +53,8 @@ export class Recruspace implements INodeType {
 		defaults: {
 			name: 'Recruspace',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'recruspaceApi',
@@ -830,7 +830,9 @@ export class Recruspace implements INodeType {
 					});
 					continue;
 				}
-				throw error;
+				throw error instanceof NodeApiError || error instanceof NodeOperationError
+					? error
+					: new NodeApiError(this.getNode(), error as JsonObject, { itemIndex: i });
 			}
 		}
 
