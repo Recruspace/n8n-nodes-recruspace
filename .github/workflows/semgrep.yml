@@ -79,7 +79,11 @@ jobs:
       # findings, so the run is classified here instead: findings stay green, a scan
       # that produced no parsable results fails the job loudly.
       - name: Summarize Findings
+        id: summary
         if: always()
+        env:
+          # PR: source branch. push/schedule/dispatch: the ref being scanned.
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           python3 - <<'PY'
           import json, os, sys, collections
@@ -91,6 +95,10 @@ jobs:
               with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
                   summary.write(text + "\n")
 
+          def set_output(name, value):
+              with open(os.environ["GITHUB_OUTPUT"], "a") as handle:
+                  handle.write(f"{name}={value}\n")
+
           path = "semgrep-results/semgrep.json"
           try:
               with open(path) as handle:
@@ -98,6 +106,9 @@ jobs:
           except (OSError, json.JSONDecodeError) as exc:
               emit(f"## Semgrep SAST\n\n**No usable scan results ({exc}).** "
                    "Treat this run as no scan at all, not as a clean one.")
+              # A crashed scan is not a clean run, but it is also not a finding to
+              # alert on — the job already fails below. Keep Slack quiet.
+              set_output("total", "0")
               sys.exit(1)
 
           # Semgrep emits both the legacy INFO/WARNING/ERROR scale and the newer
@@ -137,6 +148,32 @@ jobs:
                   lines.append(f"- ...and {len(errors) - 10} more")
 
           emit("\n".join(lines))
+
+          # --- Slack rollup ---------------------------------------------------
+          # `total` gates the next step (post only on findings). The payload is
+          # built here so JSON encoding is safe; the next step only POSTs it.
+          total = len(results)
+          set_output("total", str(total))
+          if total:
+              run_url = (
+                  f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}"
+                  f"/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+              )
+              by_sev = " · ".join(
+                  f"{level.title()} {counts[level]}"
+                  for level in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN")
+                  if counts.get(level)
+              ) or f"{total} finding(s)"
+              text = (
+                  f":rotating_light: *Semgrep SAST — {total} finding(s)*\n"
+                  f"*Repo:* `{os.environ['GITHUB_REPOSITORY']}`   "
+                  f"*Branch:* `{os.environ.get('BRANCH', '?')}` "
+                  f"({os.environ['GITHUB_EVENT_NAME']})\n"
+                  f"*Severity:* {by_sev}\n"
+                  f"<{run_url}|Open workflow run> — full findings in the run artifact"
+              )
+              with open(os.path.join(os.environ["RUNNER_TEMP"], "slack-payload.json"), "w") as handle:
+                  json.dump({"text": text}, handle)
           PY
 
       # Deliberately no github/codeql-action/upload-sarif step: the Security tab needs
@@ -151,3 +188,31 @@ jobs:
           path: semgrep-results/
           retention-days: 90
           if-no-files-found: warn
+
+      # Zero-findings baseline: a clean run writes no payload, so this step no-ops
+      # and the channel stays silent. A delivery failure is swallowed
+      # (continue-on-error + exit 0) so Slack being down never turns the evidence
+      # run red. The full finding list stays in the artifact, not the channel.
+      - name: Alert Slack on Findings
+        if: always() && steps.summary.outputs.total != '0' && steps.summary.outputs.total != ''
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SEMGREP_SLACK_WEBHOOK_URL }}
+        run: |
+          set -uo pipefail
+          payload="$RUNNER_TEMP/slack-payload.json"
+          response="$RUNNER_TEMP/slack-response.txt"
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SEMGREP_SLACK_WEBHOOK_URL is not set — skipping Slack alert."
+            exit 0
+          fi
+          if [ ! -f "$payload" ]; then
+            echo "No Slack payload produced — nothing to send."
+            exit 0
+          fi
+          status=$(curl -sS -o "$response" -w '%{http_code}' \
+            -X POST -H 'Content-type: application/json' \
+            --data @"$payload" "$SLACK_WEBHOOK_URL" || echo "000")
+          echo "Slack responded HTTP $status"
+          cat "$response" 2>/dev/null || true
+          exit 0
