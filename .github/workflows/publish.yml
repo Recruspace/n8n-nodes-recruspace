@@ -6,8 +6,12 @@ on:
       - '*.*.*'
 
 jobs:
+  secret-scan:
+    uses: ./.github/workflows/gitleaks.yml
+
   publish:
     name: Publish to npm
+    needs: secret-scan
     runs-on: ubuntu-latest
 
     permissions:

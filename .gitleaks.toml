@@ -1,0 +1,15 @@
+# Gitleaks config for n8n-nodes-recruspace.
+#
+# useDefault pulls in the full upstream rule set. A false positive is suppressed
+# narrowly and with a reason: add its exact fingerprint (commit:file:rule:line)
+# to a .gitleaksignore file at the repo root, one per line, each with a comment
+# saying why it is not a real secret. Never exclude a whole directory or file
+# type here — that defeats the scan.
+#
+# One-time baseline scan 2026-09-02 (gitleaks 8.30.1, full history, all refs):
+# 0 findings, so no .gitleaksignore exists yet.
+
+title = "n8n-nodes-recruspace gitleaks config"
+
+[extend]
+useDefault = true
