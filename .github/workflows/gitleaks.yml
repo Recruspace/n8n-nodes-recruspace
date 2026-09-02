@@ -1,0 +1,129 @@
+name: Gitleaks
+
+on:
+  # Primary gate: every pull request, before merge.
+  pull_request:
+  # Called by publish.yml before an npm release (tag push), so the release
+  # pipeline runs the identical check as a second line of defence.
+  workflow_call:
+  # Weekly sweep + manual run. GitHub only fires schedule from the default branch.
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitleaks-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Pinned: an unpinned scanner changes findings between runs. Bump deliberately.
+  GITLEAKS_VERSION: '8.30.1'
+
+jobs:
+  scan:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # PR/deploy scans need the checked-out ref's complete ancestry; sweep
+          # runs additionally scan every fetched ref.
+          fetch-depth: 0
+
+      # Pinned CLI on the runner, same pattern as semgrep.yml. The
+      # gitleaks/gitleaks-action wrapper is avoided: it needs a GITLEAKS_LICENSE
+      # for organization repos.
+      - name: Install Gitleaks
+        run: |
+          set -euo pipefail
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          release="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          # Keep the archive's real name so the checksums file matches it.
+          curl -sSfL "${release}/${archive}" -o "${RUNNER_TEMP}/${archive}"
+          curl -sSfL "${release}/gitleaks_${GITLEAKS_VERSION}_checksums.txt" \
+            -o "${RUNNER_TEMP}/gitleaks-checksums.txt"
+          (
+            cd "${RUNNER_TEMP}"
+            grep "  ${archive}$" gitleaks-checksums.txt | sha256sum --check --strict
+          )
+          sudo tar -xzf "${RUNNER_TEMP}/${archive}" -C /usr/local/bin gitleaks
+          gitleaks version
+
+      # PR and deploy runs scan the full history reachable from the checked-out
+      # ref, so an unrelated open branch cannot block them. Scheduled and manual
+      # sweeps scan all fetched refs. A finding or scanner error fails the job.
+      # The summary lists actionable metadata; secret values stay redacted. A
+      # root .gitleaksignore (if present) is picked up automatically.
+      - name: Scan for secrets
+        run: |
+          set -uo pipefail
+          set +e  # GitHub runs bash -e; keep going past a gitleaks finding to reach the summary
+          mkdir -p gitleaks-results
+          report="gitleaks-results/gitleaks.json"
+          log_opts="--full-history --diff-filter=tuxdb"
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            log_opts="${log_opts} --all"
+          fi
+          gitleaks git . \
+            --config .gitleaks.toml \
+            --log-opts="${log_opts}" \
+            --report-path "${report}" \
+            --report-format json \
+            --redact=100 \
+            --exit-code 1
+          rc=$?
+          [ -s "${report}" ] || echo '[]' > "${report}"
+          python3 - "${rc}" "${report}" <<'PY'
+          import json, os, sys
+
+          rc = int(sys.argv[1])
+          findings = json.load(open(sys.argv[2]))
+          out = ["## Gitleaks", ""]
+          if findings:
+              out.append(
+                  f"**{len(findings)} secret(s) detected — pipeline blocked.** "
+                  "Rotate the credential at its source (deleting the line is not a "
+                  "fix on its own), then remove it from the change. For a confirmed "
+                  "false positive, add a justified fingerprint to `.gitleaksignore`."
+              )
+              out += [
+                  "",
+                  "| File | Line | Rule | Commit | Fingerprint |",
+                  "| --- | --- | --- | --- | --- |",
+              ]
+              for f in findings:
+                  name = str(f.get("File", "?")).replace("|", "\\|")
+                  rule = str(f.get("RuleID", "?")).replace("|", "\\|")
+                  commit = str(f.get("Commit", "?")).replace("|", "\\|")
+                  fingerprint = str(f.get("Fingerprint", "?")).replace("|", "\\|")
+                  out.append(
+                      f"| `{name}` | {f.get('StartLine', '?')} | `{rule}` | "
+                      f"`{commit}` | `{fingerprint}` |"
+                  )
+          elif rc != 0:
+              out.append(f"**Scanner error (exit {rc}) — not a clean run.** Check the step log.")
+          else:
+              out.append("No secrets detected.")
+
+          text = "\n".join(out) + "\n"
+          print(text)
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a") as fh:
+                  fh.write(text)
+          sys.exit(1 if (findings or rc != 0) else 0)
+          PY
+
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gitleaks-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: gitleaks-results/
+          retention-days: 90
+          if-no-files-found: warn
