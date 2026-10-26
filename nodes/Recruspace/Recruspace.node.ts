@@ -221,7 +221,8 @@ export class Recruspace implements INodeType {
 					{
 						name: 'Binary Data',
 						value: 'binaryData',
-						description: 'Upload CV file directly from previous node binary data (multipart/form-data)',
+						description:
+							'Upload CV file directly from previous node binary data (multipart/form-data)',
 					},
 				],
 				default: 'binaryData',
@@ -535,12 +536,9 @@ export class Recruspace implements INodeType {
 							jobPost =
 								typeof jobPostParam === 'object' && jobPostParam !== null
 									? (jobPostParam.value as string)
-									: (jobPostParam as string || '');
+									: (jobPostParam as string) || '';
 						} else if (associationType === 'talentPool') {
-							const talentPoolIdParam = this.getNodeParameter(
-								'talentPoolId',
-								i,
-							) as IDataObject;
+							const talentPoolIdParam = this.getNodeParameter('talentPoolId', i) as IDataObject;
 							talentPoolId =
 								typeof talentPoolIdParam === 'object' && talentPoolIdParam !== null
 									? parseInt(String(talentPoolIdParam.value), 10)
@@ -662,11 +660,9 @@ export class Recruspace implements INodeType {
 						}
 
 						if (!noteText || noteText.trim() === '') {
-							throw new NodeOperationError(
-								this.getNode(),
-								'Note text is required.',
-								{ itemIndex: i },
-							);
+							throw new NodeOperationError(this.getNode(), 'Note text is required.', {
+								itemIndex: i,
+							});
 						}
 
 						const apiUrl = `${cleanBaseUrl}/add-note`;
@@ -751,11 +747,9 @@ export class Recruspace implements INodeType {
 						}
 
 						if (!tagTitle || tagTitle.trim() === '') {
-							throw new NodeOperationError(
-								this.getNode(),
-								'Tag Title is required.',
-								{ itemIndex: i },
-							);
+							throw new NodeOperationError(this.getNode(), 'Tag Title is required.', {
+								itemIndex: i,
+							});
 						}
 
 						try {
@@ -788,11 +782,9 @@ export class Recruspace implements INodeType {
 						const talentPoolName = this.getNodeParameter('talentPoolName', i) as string;
 
 						if (!talentPoolName || talentPoolName.trim() === '') {
-							throw new NodeOperationError(
-								this.getNode(),
-								'Talent Pool Name is required.',
-								{ itemIndex: i },
-							);
+							throw new NodeOperationError(this.getNode(), 'Talent Pool Name is required.', {
+								itemIndex: i,
+							});
 						}
 
 						try {
