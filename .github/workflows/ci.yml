@@ -24,5 +24,11 @@ jobs:
       - name: Run lint
         run: 'npm run lint'
 
+      # `n8n-node lint` runs ESLint only and does not check formatting. Runs even when
+      # lint failed, so one push reports both. Config lives in .prettierrc.js.
+      - name: Run Prettier check
+        if: ${{ !cancelled() }}
+        run: 'npm run format:check'
+
       - name: Run build
         run: 'npm run build'
