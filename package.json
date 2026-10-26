@@ -24,7 +24,15 @@
     "format": "prettier nodes credentials --write",
     "format:check": "prettier nodes credentials --check",
     "release": "n8n-node release",
-    "prepublishOnly": "npm run lint && npm run build"
+    "prepublishOnly": "npm run lint && npm run build",
+    "setup:hooks": "husky"
+  },
+  "lint-staged": {
+    "{nodes,credentials}/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "{nodes,credentials}/**/*.json": "prettier --write"
   },
   "files": [
     "dist"
@@ -48,6 +56,8 @@
     "@n8n/node-cli": "^0.44.3",
     "@types/node": "^25.0.0",
     "eslint": "9.32.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "n8n-workflow": "2.35.2",
     "prettier": "3.6.2",
     "release-it": "^19.0.4",

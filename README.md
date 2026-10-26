@@ -67,6 +67,16 @@ Starts your workflow when specific events occur in Recruspace:
 
 * Tested with n8n version 1.0.0+.
 
+## Development
+
+### Editor and pre-commit setup
+
+The repository ships editor settings for VS Code, Cursor (`.vscode/`) and Zed (`.zed/`). They run Prettier and ESLint on save, the same checks CI runs (`npm run lint` and `npm run format:check`).
+
+- **Recommended extensions** (VS Code and Cursor will offer them on first open): ESLint (`dbaeumer.vscode-eslint`) and Prettier (`esbenp.prettier-vscode`).
+- **Pre-commit hook:** `npm install` installs [husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged). Run `npm run setup:hooks` once to activate `.husky/pre-commit` (there is no `prepare` script, because `n8n-node lint` forbids lifecycle scripts in community node packages). On staged files under `nodes/` and `credentials/` the hook runs `eslint --fix` and `prettier --write`. Fixable problems are fixed and added to the commit; other errors stop it.
+- **Skipping the hook** in an emergency: `git commit --no-verify`. CI still runs the lint checks on the pull request.
+
 ## Resources
 
 * [GitHub Repository](https://github.com/Recruspace/n8n-nodes-recruspace)
