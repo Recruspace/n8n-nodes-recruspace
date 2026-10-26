@@ -13,8 +13,7 @@ export class RecruspaceApi implements ICredentialType {
 
 	icon: Icon = 'file:../nodes/Recruspace/recruspace.svg';
 
-	documentationUrl =
-		'https://github.com/ATS-Recruspace/n8n-nodes-recruspace#credentials';
+	documentationUrl = 'https://github.com/ATS-Recruspace/n8n-nodes-recruspace#credentials';
 
 	properties: INodeProperties[] = [
 		{
