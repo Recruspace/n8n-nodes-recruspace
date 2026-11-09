@@ -58,7 +58,7 @@
     "eslint": "9.32.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
-    "n8n-workflow": "2.35.2",
+    "n8n-workflow": "3.0.1",
     "prettier": "3.6.2",
     "release-it": "^19.0.4",
     "typescript": "5.9.2"
