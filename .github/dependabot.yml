@@ -1,0 +1,40 @@
+# Dependabot version updates.
+#
+# This file only governs *version* updates. Dependabot *security* updates are a
+# separate mechanism driven by GitHub security alerts (Settings > Code
+# security); the options below do not apply to them.
+#
+# - No target-branch: this repository has a single branch (`main`), which is
+#   Dependabot's default target.
+# - cooldown (7 days) - supply-chain guard: a version is proposed only after it
+#   has been public for 7 days.
+# - groups - minor and patch bumps arrive as one PR per ecosystem; major bumps
+#   stay as separate PRs so each can be reviewed and reverted on its own.
+# - @types/node majors are ignored: its major must match the Node.js runtime
+#   major, so it is bumped by hand together with the runtime. Minor and patch
+#   updates still flow.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']
